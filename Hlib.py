@@ -1,6 +1,24 @@
-def plt_seaborn(embeddings,LEN):
-    import torch
-    import torch.nn.functional as F
+import torch
+import torch.nn.functional as F
+
+def Diff(v1, v2):
+    return v1 - v2
+
+def Add(v1, v2):
+    return v1 + v2
+
+def Dist(v1, v2):
+    return torch.dist(v1, v2)
+
+diff_modes = {
+    'Add': Add,
+    'Diff': Diff,
+    # 在这里添加更多的diffMode选项
+}
+
+
+def plt_seaborn(embeddings,LEN,diffMode):
+
 
     # torch.Size([4, 1024])
     # 输出LEN^2个差异 将0至LEN-1 对 LEN至2*LEN-1的差异
@@ -11,7 +29,11 @@ def plt_seaborn(embeddings,LEN):
         Lenindex = 0
         for i in range(LEN):
             for j in range(LEN):
-                diff[Lenindex] = embeddings[i] - embeddings[j + LEN]
+                if diffMode in diff_modes:
+                    diff[Lenindex] = diff_modes[diffMode](embeddings[i], embeddings[j + LEN])
+                else:
+                    # 错误
+                    raise ValueError('diffMode Error!')
                 Lenindex += 1
         out = torch.zeros((LEN*LEN, LEN*LEN))
         for i in range(LEN*LEN):
