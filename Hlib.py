@@ -1,24 +1,78 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
+
+
+
+
+def Dist(v1, v2, p=2,Absolute = 1):
+    temp = v1 - v2
+    sum = 0
+    for i in range(len(temp)):
+        if Absolute:
+            temp[i] = abs(temp[i])
+        temp[i] = temp[i] ** p
+        sum += temp[i]
+    return sum ** (1/p)
+
+    
+def CosSimilarity(v1, v2):
+    return F.cosine_similarity(v1.unsqueeze(0), v2.unsqueeze(0))
+
+def JaccardSimilarity(v1, v2):
+    v1 = v1.to('cpu').numpy()
+    v2 = v2.to('cpu').numpy()
+    return len(set(v1) & set(v2)) / len(set(v1) | set(v2))
+
+# 向量点乘
+def Dot(v1, v2):
+    return v1.dot(v2)
+
+
+# 计算 d = d(v1,v2)  其输出是一个标量
+diff_modes = {
+    'Dist': Dist,
+    'CosSimilarity': CosSimilarity,
+    'JaccardSimilarity': JaccardSimilarity,
+    'Dot': Dot
+}
+
+# 我有向量a=[1,2,3] b = [4,5,6] 
+# 想得到结果out = [1,2,3,4,5,6] out2=[[1,2],[3,4],[5,6]] out3= [[1,2,3],[4,5,6]]
 
 def Diff(v1, v2):
     return v1 - v2
 
+def connect_1(a, b):
+    return np.concatenate((a, b))
+
+def connect_2(a, b):
+    return np.array(list(zip(a, b)))
+
+def connect_3(a, b):
+    return np.array([a, b])
+
 def Add(v1, v2):
     return v1 + v2
 
-def Dist(v1, v2):
-    return torch.dist(v1, v2)
+# 向量叉乘
+def Cross(v1, v2):
+    return np.cross(v1, v2)
 
-diff_modes = {
-    'Add': Add,
+def Mul(v1, v2):
+    return v1 * v2
+
+# 计算 v = d(x,y)  其输出是一个向量
+vector_modes = {
     'Diff': Diff,
-    # 在这里添加更多的diffMode选项
+    'connect_1': connect_1,
+    'connect_2': connect_2,
+    'connect_3': connect_3,
+    'Add': Add,
+    'Cross': Cross,
+    'Mul': Mul
 }
-
-
-def plt_seaborn(embeddings,LEN,diffMode):
-
+def plt_seaborn(embeddings,LEN,diffMode,vectorsMode,p=2,Absolute=1,reversal = 1):
 
     # torch.Size([4, 1024])
     # 输出LEN^2个差异 将0至LEN-1 对 LEN至2*LEN-1的差异
@@ -30,7 +84,7 @@ def plt_seaborn(embeddings,LEN,diffMode):
         for i in range(LEN):
             for j in range(LEN):
                 if diffMode in diff_modes:
-                    diff[Lenindex] = diff_modes[diffMode](embeddings[i], embeddings[j + LEN])
+                    diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j], p, Absolute)
                 else:
                     # 错误
                     raise ValueError('diffMode Error!')
@@ -39,7 +93,8 @@ def plt_seaborn(embeddings,LEN,diffMode):
         for i in range(LEN*LEN):
             for j in range(LEN*LEN):
                 # out[i][j] = F.cosine_similarity(diff[i].unsqueeze(0), diff[j].unsqueeze(0))
-                out[i][j] = torch.dist(diff[i], diff[j])
+                # out[i][j] = torch.dist(diff[i], diff[j])
+                out[i][j] = diff_modes[diffMode](diff[i], diff[j], p, Absolute)
     else:
         out = embeddings
     
