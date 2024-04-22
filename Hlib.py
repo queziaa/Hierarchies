@@ -36,12 +36,12 @@ def HyperScore2(v1, v2,p=2):
 # 计算 d = d(v1,v2)  其输出是一个标量
 diff_modes = {
     'Dist': Dist,
-    # 'CosSimilarity': CosSimilarity,
-    # 'JaccardSimilarity': JaccardSimilarity,
-    # 'Dot': Dot,
-    # 'Diffnorm': Diffnorm,
-    # 'HyperScore':HyperScore,
-    # 'HyperScore2':HyperScore2
+    'CosSimilarity': CosSimilarity,
+    'JaccardSimilarity': JaccardSimilarity,
+    'Dot': Dot,
+    'Diffnorm': Diffnorm,
+    'HyperScore':HyperScore,
+    'HyperScore2':HyperScore2
 }
 
 # 我有向量a=[1,2,3] b = [4,5,6] 
@@ -77,15 +77,15 @@ def Mul(v1, v2):
 # 计算 v = d(x,y)  其输出是一个向量
 vector_modes = {
     'Diff': Diff,
-#     'connect_1': connect_1,
-#     'connect_2': connect_2,
-#     'connect_3': connect_3,
-#     'Add': Add,
-#     'Cross': Cross,
-#     'Mul': Mul
+    'connect_1': connect_1,
+    'connect_2': connect_2,
+    'connect_3': connect_3,
+    'Add': Add,
+    'Cross': Cross,
+    'Mul': Mul
 }
 def plt_seaborn(embeddings,vectorsMode,diffMode,p=2,Absolute=False,reversal = False,isplt = True,mulmermod = 1):
-    print('mode:',vectorsMode,diffMode)
+    print('*************************************mode:',vectorsMode,diffMode)
     LEN = int(embeddings.shape[0]/2)
     # torch.Size([4, 1024])
     # 输出LEN^2个差异 将0至LEN-1 对 LEN至2*LEN-1的差异
@@ -106,29 +106,29 @@ def plt_seaborn(embeddings,vectorsMode,diffMode,p=2,Absolute=False,reversal = Fa
     # 对于输入的LEN 个向量，计算它们之间的差异  输出LEN*LEN个差异
     for i in range(LEN):
         for j in range(LEN):
-            diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j+3])
+            diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j+LEN])
             # print(vector_modes[vectorsMode](embeddings[i], embeddings[j]).shape)
             # print(diff[Lenindex].shape)
             Lenindex += 1
-    np.savetxt('diff.csv', diff.detach().numpy(), delimiter = ',')
-    print(diff)
+    # np.savetxt('diff.csv', diff.detach().numpy(), delimiter = ',')
+    # print(diff)
     out = torch.zeros((LEN*LEN, LEN*LEN))
-    print("compute diff")
+    # print("compute diff")
     # 再计算这LEN*LEN个差异之间的差异
     for i in tqdm(range(LEN*LEN)):
         for j in range(LEN*LEN):
-            # if reversal:
-            #     Itemp = diff[i] * -1
-            # else:
-            #     Itemp = diff[i]
+            if reversal:
+                Itemp = diff[i] * -1
+            else:
+                Itemp = diff[i]
             
-            # if Absolute:
-            #     Itemp = torch.abs(Itemp)
-            #     Jtemp = torch.abs(diff[j])
-            # else:
-            #     Jtemp = diff[j]
-            # te = diff_modes[diffMode](Itemp, Jtemp, p)
-            te = diff_modes[diffMode](diff[i], diff[j], p)
+            if Absolute:
+                Itemp = torch.abs(Itemp)
+                Jtemp = torch.abs(diff[j])
+            else:
+                Jtemp = diff[j]
+            te = diff_modes[diffMode](Itemp, Jtemp, p)
+            # te = diff_modes[diffMode](diff[i], diff[j], p)
             # 如果te不是1*1的张量   根据 mulmermod 处理 1为平均 2为乘积
             if type(te) != float and  len(te.shape) != 0:
                 if mulmermod == 1:
@@ -139,22 +139,22 @@ def plt_seaborn(embeddings,vectorsMode,diffMode,p=2,Absolute=False,reversal = Fa
 
 
     # 将out 保存到文件 csv
-    np.savetxt('out.csv', out.detach().numpy(), delimiter = ',')
-    print("compute out")    
+    # np.savetxt('out.csv', out.detach().numpy(), delimiter = ',')
+    # print("compute out")    
     # 绘制热力图
     nonSample = []
     trSample = []
     for i in range(LEN*LEN):
         for j in range(LEN*LEN):
-            # if i > j:
-            #     out[i][j] = -0.5
-            #     continue
-            # if (i % LEN) == (j % LEN):
-            #     out[i][j] = -0.5
-            #     continue
-            # if abs(i - j) < LEN  and (i // LEN) == (j // LEN):
-            #     out[i][j] = -0.5
-            #     continue
+            if i > j:
+                out[i][j] = 0
+                continue
+            if (i % LEN) == (j % LEN):
+                out[i][j] = 0
+                continue
+            if abs(i - j) < LEN  and (i // LEN) == (j // LEN):
+                out[i][j] = 0
+                continue
             if i//LEN==i%LEN and j//LEN==j%LEN and i!=j:
                 # 绿线交汇点
                 # 转化为float再 append
@@ -196,8 +196,8 @@ def find_ordered_positions(unsorted_values, members_to_find):
     # 排序 从小至大
     sorted_values = sorted(unsorted_values)
     # 寻找members_to_find 在 sorted_values 中的位置
-    ordered_positions = [sorted_values.index(member) for member in members_to_find]
-    return  ordered_positions,[x for x in [x - i for i, x in enumerate(sorted(ordered_positions))] if x != 0]
+    ordered_positions = sorted([sorted_values.index(member) for member in members_to_find])
+    return  ordered_positions,[x for x in [x - i for i, x in enumerate(ordered_positions)] if x != 0]
 
 
 # input_texts = ['先生',
