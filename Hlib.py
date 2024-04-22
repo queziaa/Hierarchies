@@ -20,7 +20,7 @@ def JaccardSimilarity(v1, v2, p=2):
     return len(set(v1) & set(v2)) / len(set(v1) | set(v2))
 
 def Dot(v1, v2, p=2):
-    return torch.matmul(v1, v2.T)
+    return torch.sum(v1 * v2)
 
 def Diffnorm(v1, v2, p=2):
     # 计算v1和v2的差的范数，然后将结果转换为PyTorch张量
@@ -36,12 +36,12 @@ def HyperScore2(v1, v2,p=2):
 # 计算 d = d(v1,v2)  其输出是一个标量
 diff_modes = {
     'Dist': Dist,
-    'CosSimilarity': CosSimilarity,
-    'JaccardSimilarity': JaccardSimilarity,
-    'Dot': Dot,
-    'Diffnorm': Diffnorm,
-    'HyperScore':HyperScore,
-    'HyperScore2':HyperScore2
+    # 'CosSimilarity': CosSimilarity,
+    # 'JaccardSimilarity': JaccardSimilarity,
+    # 'Dot': Dot,
+    # 'Diffnorm': Diffnorm,
+    # 'HyperScore':HyperScore,
+    # 'HyperScore2':HyperScore2
 }
 
 # 我有向量a=[1,2,3] b = [4,5,6] 
@@ -68,9 +68,8 @@ def connect_3(a, b):
 def Add(v1, v2):
     return v1 + v2
 
-# 向量叉乘
 def Cross(v1, v2):
-    return torch.cross(v1, v2)
+    return torch.outer(v1.squeeze(), v2.squeeze())
 
 def Mul(v1, v2):
     return v1 * v2
@@ -78,12 +77,12 @@ def Mul(v1, v2):
 # 计算 v = d(x,y)  其输出是一个向量
 vector_modes = {
     'Diff': Diff,
-    'connect_1': connect_1,
-    'connect_2': connect_2,
-    'connect_3': connect_3,
-    'Add': Add,
-    'Cross': Cross,
-    'Mul': Mul
+#     'connect_1': connect_1,
+#     'connect_2': connect_2,
+#     'connect_3': connect_3,
+#     'Add': Add,
+#     'Cross': Cross,
+#     'Mul': Mul
 }
 def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal = False,isplt = True,mulmermod = 1):
     print('mode:',vectorsMode,diffMode)
@@ -96,20 +95,25 @@ def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal 
         diff = torch.zeros((LEN*LEN, embeddings.shape[1],2))
     elif vectorsMode == 'connect_3':
         diff = torch.zeros((LEN*LEN, 2,embeddings.shape[1]))
+    elif vectorsMode == 'Cross':
+        diff = torch.zeros((LEN*LEN, embeddings.shape[1], embeddings.shape[1]))
     else:
         diff = torch.zeros((LEN*LEN, embeddings.shape[1]))
     Lenindex = 0
     
+    # 对于输入的LEN 个向量，计算它们之间的差异  输出LEN*LEN个差异
     for i in range(LEN):
         for j in range(LEN):
             diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j])
+            # print(vector_modes[vectorsMode](embeddings[i], embeddings[j]).shape)
+            # print(diff[Lenindex].shape)
             Lenindex += 1
+    
     out = torch.zeros((LEN*LEN, LEN*LEN))
     print("compute diff")
+    # 再计算这LEN*LEN个差异之间的差异
     for i in tqdm(range(LEN*LEN)):
         for j in range(LEN*LEN):
-            # out[i][j] = F.cosine_similarity(diff[i].unsqueeze(0), diff[j].unsqueeze(0))
-            # out[i][j] = torch.dist(diff[i], diff[j])
             if reversal:
                 Itemp = diff[i] * -1
             else:
@@ -120,6 +124,7 @@ def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal 
                 Jtemp = torch.abs(diff[j])
             else:
                 Jtemp = diff[j]
+
             te = diff_modes[diffMode](Itemp, Jtemp, p)
             # 如果te不是1*1的张量   根据 mulmermod 处理 1为平均 2为乘积
             if type(te) != float and  len(te.shape) != 0:
@@ -128,27 +133,33 @@ def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal 
                 elif mulmermod == 2:
                     te = torch.prod(te)
             out[i][j] = te
-        
+
+
+    # 将out 保存到文件 csv
+    np.savetxt('out.csv', out.detach().numpy(), delimiter = ',')
     print("compute out")    
     # 绘制热力图
     nonSample = []
     trSample = []
     for i in range(LEN*LEN):
         for j in range(LEN*LEN):
-            if i > j:
-                out[i][j] = -0.5
-                continue
-            if (i % LEN) == (j % LEN):
-                out[i][j] = -0.5
-                continue
-            if abs(i - j) < LEN  and (i // LEN) == (j // LEN):
-                out[i][j] = -0.5
-                continue
+            # if i > j:
+            #     out[i][j] = -0.5
+            #     continue
+            # if (i % LEN) == (j % LEN):
+            #     out[i][j] = -0.5
+            #     continue
+            # if abs(i - j) < LEN  and (i // LEN) == (j // LEN):
+            #     out[i][j] = -0.5
+            #     continue
             if i//LEN==i%LEN and j//LEN==j%LEN and i!=j:
-                # <class 'torch.Tensor'> 转化为float
-                trSample.append(out[i][j])
+                # 绿线交汇点
+                # 转化为float再 append
+                # trSample.append(out[i][j])
+                trSample.append(out[i][j].item())
             else:
-                nonSample.append(out[i][j])
+                nonSample.append(out[i][j].item())
+                # nonSample.append(out[i][j])
 
     if isplt:
         import matplotlib.pyplot as plt
