@@ -84,8 +84,9 @@ vector_modes = {
 #     'Cross': Cross,
 #     'Mul': Mul
 }
-def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal = False,isplt = True,mulmermod = 1):
+def plt_seaborn(embeddings,vectorsMode,diffMode,p=2,Absolute=False,reversal = False,isplt = True,mulmermod = 1):
     print('mode:',vectorsMode,diffMode)
+    LEN = int(embeddings.shape[0]/2)
     # torch.Size([4, 1024])
     # 输出LEN^2个差异 将0至LEN-1 对 LEN至2*LEN-1的差异
     # 创建一个LEN^2个差异的矩阵
@@ -101,31 +102,33 @@ def plt_seaborn(embeddings,LEN,vectorsMode,diffMode,p=2,Absolute=False,reversal 
         diff = torch.zeros((LEN*LEN, embeddings.shape[1]))
     Lenindex = 0
     
+ 
     # 对于输入的LEN 个向量，计算它们之间的差异  输出LEN*LEN个差异
     for i in range(LEN):
         for j in range(LEN):
-            diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j])
+            diff[Lenindex] = vector_modes[vectorsMode](embeddings[i], embeddings[j+3])
             # print(vector_modes[vectorsMode](embeddings[i], embeddings[j]).shape)
             # print(diff[Lenindex].shape)
             Lenindex += 1
-    
+    np.savetxt('diff.csv', diff.detach().numpy(), delimiter = ',')
+    print(diff)
     out = torch.zeros((LEN*LEN, LEN*LEN))
     print("compute diff")
     # 再计算这LEN*LEN个差异之间的差异
     for i in tqdm(range(LEN*LEN)):
         for j in range(LEN*LEN):
-            if reversal:
-                Itemp = diff[i] * -1
-            else:
-                Itemp = diff[i]
+            # if reversal:
+            #     Itemp = diff[i] * -1
+            # else:
+            #     Itemp = diff[i]
             
-            if Absolute:
-                Itemp = torch.abs(Itemp)
-                Jtemp = torch.abs(diff[j])
-            else:
-                Jtemp = diff[j]
-
-            te = diff_modes[diffMode](Itemp, Jtemp, p)
+            # if Absolute:
+            #     Itemp = torch.abs(Itemp)
+            #     Jtemp = torch.abs(diff[j])
+            # else:
+            #     Jtemp = diff[j]
+            # te = diff_modes[diffMode](Itemp, Jtemp, p)
+            te = diff_modes[diffMode](diff[i], diff[j], p)
             # 如果te不是1*1的张量   根据 mulmermod 处理 1为平均 2为乘积
             if type(te) != float and  len(te.shape) != 0:
                 if mulmermod == 1:
