@@ -36,12 +36,12 @@ def HyperScore2(v1, v2,p=2):
 # 计算 d = d(v1,v2)  其输出是一个标量
 diff_modes = {
     'Dist': Dist,
-    'CosSimilarity': CosSimilarity,
-    'JaccardSimilarity': JaccardSimilarity,
-    'Dot': Dot,
-    'Diffnorm': Diffnorm,
-    'HyperScore':HyperScore,
-    'HyperScore2':HyperScore2
+    # 'CosSimilarity': CosSimilarity,
+    # 'JaccardSimilarity': JaccardSimilarity,
+    # 'Dot': Dot,
+    # 'Diffnorm': Diffnorm,
+    # 'HyperScore':HyperScore,
+    # 'HyperScore2':HyperScore2
 }
 
 # 我有向量a=[1,2,3] b = [4,5,6] 
@@ -85,7 +85,7 @@ vector_modes = {
     'Mul': Mul
 }
 def plt_seaborn(embeddings,vectorsMode,diffMode,p=2,Absolute=False,reversal = False,isplt = True,mulmermod = 1):
-    print('*************************************mode:',vectorsMode,diffMode)
+    print('*************************************mode:',vectorsMode,diffMode,p)
     LEN = int(embeddings.shape[0]/2)
     # torch.Size([4, 1024])
     # 输出LEN^2个差异 将0至LEN-1 对 LEN至2*LEN-1的差异
